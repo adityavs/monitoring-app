@@ -79,8 +79,8 @@ if [ $1 = "update" ]; then
     sed -i s/b1lIV3gyVDlmQVd3SzdsZTRrZDY=/$password/g /var/lib/gravity/resources/secrets.yaml
 
     # Generate password for InfluxDB grafana user
-    password=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 | tr -d '\n ')
-    sed -i s/cGRGY29ma2NHYllIekRZMUdadmg=/$(echo -n $password | /opt/bin/base64)/g /var/lib/gravity/resources/secrets.yaml
+    password=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 | tr -d '\n ' | /opt/bin/base64)
+    sed -i s/cGRGY29ma2NHYllIekRZMUdadmg=/$password/g /var/lib/gravity/resources/secrets.yaml
 
     # Generate password for InfluxDB telegraf user
     password=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 | tr -d '\n ' | /opt/bin/base64)
@@ -96,8 +96,10 @@ if [ $1 = "update" ]; then
         rig upsert -f /var/lib/gravity/resources/${filename}.yaml --debug
     done
 
-    TMPFILE="$(mktemp)"
-    cat >$TMPFILE<<EOF
+    if [ ! -z "$NODE_NAME" ]
+    then
+        TMPFILE="$(mktemp)"
+        cat >$TMPFILE<<EOF
 spec:
   template:
     spec:
@@ -112,8 +114,9 @@ spec:
                 values:
                 - $NODE_NAME
 EOF
-    kubectl --namespace=monitoring patch deployment influxdb -p "$(cat $TMPFILE)"
-    rm $TMPFILE
+        kubectl --namespace=monitoring patch deployment influxdb -p "$(cat $TMPFILE)"
+        rm $TMPFILE
+    fi
 
     echo "---> Checking status"
     rig status $RIG_CHANGESET --retry-attempts=120 --retry-period=1s --debug

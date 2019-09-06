@@ -55,13 +55,11 @@ type Client struct {
 // NewClient creates a new InfluxDB client
 func NewClient(config Config) (*Client, error) {
 	log.Info("Initializing client.")
-	// check authentication
 	client, err := authenticateClient(config)
 	if err == nil {
 		return &Client{client: *client}, nil
 	}
 	log.Errorf("Authentication client error: %v", err)
-	// try backwards compatible authentication
 	log.Info("Trying backwards compatible authentication...")
 	client, err = backwardsCompatibleClient(config)
 	if err != nil {
